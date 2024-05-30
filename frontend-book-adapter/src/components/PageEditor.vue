@@ -94,7 +94,7 @@ watch(currentBookName, (newBookName) => {
   fetchMetasInfos(newBookName)
 })
 
-// Watch currentText to set isTextUpdated to true when it changes
+
 watch(currentText, (newText, oldText) => {
   if (!isLoadingText && newText !== oldText) {
     isTextUpdated.value = true
@@ -151,7 +151,6 @@ const nextInfo = () => {
       </div>
     </div>
 
-    <!-- Afficher le loader lorsque isLoading est vrai -->
     <div v-if="isLoading" class="loader-overlay">
       <div class="loader">Loading...</div>
     </div>

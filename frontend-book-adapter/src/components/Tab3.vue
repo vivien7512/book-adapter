@@ -6,6 +6,5 @@
   </template>
   
   <script setup lang="ts">
-  // Aucun script supplémentaire nécessaire pour cet exemple simple
   </script>
   

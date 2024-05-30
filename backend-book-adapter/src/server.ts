@@ -17,12 +17,12 @@ app.use(express.json());
 
 const BOOK_DIR = path.join(__dirname, '../books');
 
-interface GetImageParams {
+interface ParamsBookNameAndImageName {
   bookName: string;
   imageName: string;
 }
 
-app.get('/api/getBookImage/:bookName/:imageName', (req: Request<GetImageParams>, res: Response) => {
+app.get('/api/getBookImage/:bookName/:imageName', (req: Request<ParamsBookNameAndImageName>, res: Response) => {
   const { bookName, imageName } = req.params;
 
   const bookDirectory = path.join(BOOK_DIR, bookName);
@@ -35,13 +35,13 @@ app.get('/api/getBookImage/:bookName/:imageName', (req: Request<GetImageParams>,
   res.sendFile(imagePath);
 });
 
-interface UpdateTextRequest {
+interface ParamsUpdatePageText {
   bookName: string;
   imageName: string;
   newText: string;
 }
 
-app.post('/api/updateTextOfPage', (req: Request<{}, {}, UpdateTextRequest>, res: Response) => {
+app.post('/api/updateTextOfPage', (req: Request<{}, {}, ParamsUpdatePageText>, res: Response) => {
   try {
     const { bookName, imageName, newText } = req.body;
 
@@ -70,11 +70,11 @@ app.post('/api/updateTextOfPage', (req: Request<{}, {}, UpdateTextRequest>, res:
   }
 });
 
-interface GetBookMetaInfosQuery {
+interface ParamsBookName {
   bookName: string;
 }
 
-app.get('/api/getBookMetaInfos', (req: Request<{}, {}, {}, GetBookMetaInfosQuery>, res: Response) => {
+app.get('/api/getBookMetaInfos', (req: Request<{}, {}, {}, ParamsBookName>, res: Response) => {
   const { bookName } = req.query;
 
   if (bookName) {
@@ -103,12 +103,12 @@ app.get('/api/getBookMetaInfos', (req: Request<{}, {}, {}, GetBookMetaInfosQuery
   }
 });
 
-interface GetTextOfImage {
+interface ParamsBookNamePageName {
   bookName: string;
   imageName: string;
 }
 
-app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, GetTextOfImage>, res: Response) => {
+app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, ParamsBookNamePageName>, res: Response) => {
   try {
     const { bookName, imageName } = req.query;
 
@@ -148,16 +148,6 @@ app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, GetTextOfImage>, 
     res.status(500).json({ error: 'Failed to process image with OCR' });
   }
 });
-
-// app.post('/api/saveText', (req, res) => {
-//   const { name, text } = req.body;
-//   if (!name || !text) {
-//     return res.status(400).json({ error: 'Image name and text are required' });
-//   }
-//   const textFilePath = path.join(TEXT_DIR, `${name}.txt`);
-//   fs.writeFileSync(textFilePath, text, 'utf8');
-//   res.json({ message: 'Text saved successfully' });
-// });
 
 
 app.get('/api/getBooksNames', (req, res) => {
