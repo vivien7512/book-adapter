@@ -5,7 +5,8 @@
         <select v-model="currentBookName" class="p-2 border border-gray-300 rounded flex-grow">
           <option v-for="bookName in booksNames" :key="bookName" :value="bookName">{{ bookName }}</option>
         </select>
-        <button @click="saveText" :disabled="!isTextUpdated" class="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50">🖫 Save</button>
+        <button @click="cancelTextUpdate" :disabled="!isTextUpdated" class="bg-red-500 text-white px-4 py-2 rounded disabled:opacity-50">🗙 Cancel</button>
+        <button @click="saveTextUpdate" :disabled="!isTextUpdated" class="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50">🖫 Save</button>
       </div>
       <div id="editor" class="flex-grow flex space-x-4 w-full overflow-hidden">
         <div id="image-viewer" class="flex-1 bg-gray-200 rounded-lg overflow-auto">
@@ -36,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import axios from 'axios'
 
 interface MetaInfo {
@@ -51,6 +52,7 @@ const isLoading = ref<boolean>(false)
 const booksNames = ref<string[]>([])
 const currentBookName = ref<string>('')
 const isTextUpdated = ref<boolean>(false)
+const initialText = ref<string>('')
 let isLoadingText = false; 
 
 const fetchMetasInfos = async (newBookName: string) => {
@@ -76,13 +78,13 @@ const getTextOfImage = async (imageName: string) => {
     let request = `http://localhost:3000/api/getTextOfImage?bookName=${bookName}&imageName=${imageName}`
     const response = await axios.get(request)
     currentText.value = response.data.text
+    initialText.value = response.data.text
     isTextUpdated.value = false
   } catch (error) {
     console.error('Erreur lors de la récupération de l\'image et du texte:', error)
   } finally {
     isLoading.value = false
     new Promise(resolve => setTimeout(resolve, 1000)).then(() => isLoadingText = false);
- 
   }
 }
 
@@ -98,7 +100,7 @@ const fetchBooksNames = async () => {
   }
 }
 
-const saveText = async () => {
+const saveTextUpdate = async () => {
   if (!currentItem.value) return
   try {
     isLoading.value = true  
@@ -113,6 +115,12 @@ const saveText = async () => {
   } finally {
     isLoading.value = false 
   }
+}
+
+const cancelTextUpdate = async () => {
+  currentText.value = initialText.value
+  await nextTick()
+  isTextUpdated.value = false
 }
 
 onMounted(() => {
@@ -130,7 +138,6 @@ watch(currentIndex, (newIndex) => {
 watch(currentBookName, (newBookName) => {
   fetchMetasInfos(newBookName)
 })
-
 
 watch(currentText, (newText, oldText) => {
   if (!isLoadingText && newText !== oldText) {
@@ -170,7 +177,6 @@ const nextInfo = () => {
 #navigator-bar {
   height: 5%;
 }
-
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
