@@ -1,3 +1,40 @@
+<template>
+  <div id="page-editor" class="min-h-[calc(100vh-66px)] bg-gray-100 p-4 flex flex-col">
+    <div class="bg-white shadow-md rounded-lg p-6 flex flex-col flex-grow w-full overflow-hidden mb-2">
+      <div id="toolbar" class="flex items-center space-x-4 mb-4 w-full">
+        <select v-model="currentBookName" class="p-2 border border-gray-300 rounded flex-grow">
+          <option v-for="bookName in booksNames" :key="bookName" :value="bookName">{{ bookName }}</option>
+        </select>
+        <button @click="saveText" :disabled="!isTextUpdated" class="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50">🖫 Save</button>
+      </div>
+      <div id="editor" class="flex-grow flex space-x-4 w-full overflow-hidden">
+        <div id="image-viewer" class="flex-1 bg-gray-200 rounded-lg overflow-auto">
+          <img v-if="currentItem" :src="`http://localhost:3000/api/getBookImage/${currentBookName}/${currentItem.name}.png`" alt="Image not found" class="w-full h-auto" />
+        </div>
+        <div id="text-editor" class="flex-1 overflow-auto">
+          <textarea v-model="currentText" name="text-editor" id="text-editor" cols="30" rows="10" class="w-full h-full p-2 border border-gray-300 rounded"></textarea>
+        </div>
+      </div>
+      <div id="navigator-bar" class="flex items-center justify-between mt-4 w-full">
+        <button @click="prevInfo" class="bg-gray-300 text-gray-700 px-4 py-2 rounded">← Prev</button>
+        <div id="page-name" class="text-center flex-grow">
+          <div>
+            <span v-if="currentItem" class="font-semibold">{{ currentItem.name }}</span>
+          </div>
+          <div>
+            <span v-if="currentItem">{{ currentItem.index }} / {{ metaInfos.length }}</span>
+          </div>
+        </div>
+        <button @click="nextInfo" class="bg-gray-300 text-gray-700 px-4 py-2 rounded">Next →</button>
+      </div>
+    </div>
+  
+    <div v-if="isLoading" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+      <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import axios from 'axios'
@@ -44,8 +81,8 @@ const getTextOfImage = async (imageName: string) => {
     console.error('Erreur lors de la récupération de l\'image et du texte:', error)
   } finally {
     isLoading.value = false
-    new Promise(resolve => setTimeout(resolve, 200)).then(() => isLoadingText = false)
-  
+    new Promise(resolve => setTimeout(resolve, 1000)).then(() => isLoadingText = false);
+ 
   }
 }
 
@@ -116,161 +153,25 @@ const nextInfo = () => {
 }
 </script>
 
-<template>
-  <div id="page-editor">
-    <div id="toolbar">
-      <select v-model="currentBookName" class="item">
-        <option v-for="bookName in booksNames" :key="bookName" :value="bookName">{{ bookName }}</option>
-      </select>
-      <button @click="saveText" :disabled="!isTextUpdated" class="item">🖫</button>
-    </div>
-    <div id="editor">
-      <div id="image-viewer">
-        <img v-if="currentItem" :src="`http://localhost:3000/api/getBookImage/${currentBookName}/${currentItem.name}.png`" alt="Image not found" />
-      </div>
-      <div id="text-editor">
-        <textarea v-model="currentText" name="text-editor" id="text-editor" cols="30" rows="10"></textarea>
-      </div>
-    </div>
-    <div id="navigator-bar">
-      <div id="left-nav">
-        <button @click="prevInfo">←</button>
-      </div>
-      <div id="page-name">
-        <div>
-          <span v-if="currentItem">{{ currentItem.name }}</span>
-        
-        </div>
-        <div>
-          <span v-if="currentItem">{{ currentItem.index }} / {{ metaInfos.length }}</span>
-          
-        </div>
-      </div>
-      <div id="right-nav">
-        <button @click="nextInfo">→</button>
-      </div>
-    </div>
+<style scoped>
+.loader {
+  border-top-color: #3498db;
+  animation: spin 1s ease-in-out infinite;
+}
 
-    <div v-if="isLoading" class="loader-overlay">
-      <div class="loader">Loading...</div>
-    </div>
-  </div>
-</template>
+#toolbar {
+  height: 5%;
+}
 
-<style lang="scss" scoped>
-#page-editor {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  background-color: white;
-  color: black;
-  overflow: hidden;
+#editor {
+  height: 90%;
+}
 
-  #toolbar {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    height: 5%;
-    padding: 0 10px;
+#navigator-bar {
+  height: 5%;
+}
 
-    .item {
-      margin: 0 10px;
-    }
-  }
-
-  #editor {
-    display: flex;
-    width: 100%;
-    height: 85%;
-    overflow: hidden;
-
-    #image-viewer {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 55%;
-      height: 100%;
-
-      img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-      }
-    }
-
-    #text-editor {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 45%;
-      height: 100%;
-
-      textarea {
-        width: 100%;
-        height: 99%;
-      }
-    }
-  }
-
-  #navigator-bar {
-    display: flex;
-    width: 100%;
-    height: 10%;
-
-    #left-nav,
-    #right-nav,
-    #page-name {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100%;
-    }
-
-    #left-nav {
-      flex-grow: 1;
-    }
-
-    #right-nav {
-      flex-grow: 1;
-    }
-
-    #page-name {
-      flex-grow: 8;
-      display: flex;
-      flex-direction: column;
-    }
-  }
-
-  .loader-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-
-  .loader {
-    border: 16px solid #f3f3f3;
-    border-top: 16px solid #3498db;
-    border-radius: 50%;
-    width: 120px;
-    height: 120px;
-    animation: spin 2s linear infinite;
-  }
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
