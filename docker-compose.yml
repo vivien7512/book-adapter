@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  backend-book-adapter:
+    build: ./backend-book-adapter
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend-book-adapter/images:/app/images
+
+  frontend-book-adapter:
+    build: ./frontend-book-adapter
+    ports:
+      - "5173:5173"
