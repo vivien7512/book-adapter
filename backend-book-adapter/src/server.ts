@@ -74,7 +74,7 @@ interface ParamsBookName {
   bookName: string;
 }
 
-app.get('/api/getBookMetaInfos', (req: Request<{}, {}, {}, ParamsBookName>, res: Response) => {
+app.get('/api/getBookPagesInfos', (req: Request<{}, {}, {}, ParamsBookName>, res: Response) => {
   const { bookName } = req.query;
 
   if (bookName) {
