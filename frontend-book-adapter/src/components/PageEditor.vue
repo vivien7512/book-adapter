@@ -7,15 +7,30 @@
         </select>
 
         <div id="display-group-btn">
-          <div id="button-left" class="bg-blue-500 text-white px-4 py-2 " :class="{ 'active': displayMode === displayModeEnum.SplitImageAndEdition }"
-            v-on:click="updateDisplayMode(displayModeEnum.SplitImageAndEdition) ">🖼️|✏️</div>
-          <div id="button-middle" class="bg-blue-500 text-white px-4 py-2 " :class="{ 'active': displayMode === displayModeEnum.SplitTextAndEdition }"
+          <div id="button-left" class="bg-blue-500 text-white px-4 py-2 "
+            :class="{ 'active': displayMode === displayModeEnum.SplitImageAndEdition }"
+            v-on:click="updateDisplayMode(displayModeEnum.SplitImageAndEdition)">🖼️|✏️</div>
+          <div id="button-middle" class="bg-blue-500 text-white px-4 py-2 "
+            :class="{ 'active': displayMode === displayModeEnum.SplitTextAndEdition }"
             v-on:click="updateDisplayMode(displayModeEnum.SplitTextAndEdition)">📄|✏️</div>
-          <div id="button-middle" class="bg-blue-500 text-white px-4 py-2 " :class="{ 'active': displayMode === displayModeEnum.OnlyEdition }"
+          <div id="button-middle" class="bg-blue-500 text-white px-4 py-2 "
+            :class="{ 'active': displayMode === displayModeEnum.OnlyEdition }"
             v-on:click="updateDisplayMode(displayModeEnum.OnlyEdition)">✏️</div>
-          <div id="button-right" class="bg-blue-500 text-white px-4 py-2 " :class="{ 'active': displayMode === displayModeEnum.OnlyImage }"
+          <div id="button-right" class="bg-blue-500 text-white px-4 py-2 "
+            :class="{ 'active': displayMode === displayModeEnum.OnlyImage }"
             v-on:click="updateDisplayMode(displayModeEnum.OnlyImage)">🖼️</div>
         </div>
+
+        <select v-model="textSize" class="p-2 border border-gray-300 rounded">
+          <option value="text-xxxs">Very Very Small</option>
+          <option value="text-xxs">Very Small</option>
+          <option value="text-xs">Small</option>
+          <option value="text-sm">Medium</option>
+          <option value="text-base">Large</option>
+          <option value="text-lg">Extra Large</option>
+        </select>
+
+        <button @click="deleteUselessBreakline" class="bg-gray-300 text-gray-700 px-4 py-2 rounded">Clean \n</button>
 
         <button @click="cancelTextUpdate" :disabled="!isTextUpdated"
           class="bg-red-500 text-white px-4 py-2 rounded disabled:opacity-50">🗙 Cancel</button>
@@ -25,17 +40,17 @@
 
       <div id="editor" class="flex-grow flex space-x-4 w-full overflow-hidden">
         <!-- Image Viewer -->
-        <div v-if="showImageViewer" id="image-viewer" class="flex-1 bg-gray-200 rounded-lg overflow-auto">
+        <div v-if="showImageViewer" id="image-viewer" class="flex-1 rounded-lg overflow-auto">
           <img v-if="currentItem"
             :src="`http://localhost:3000/api/getBookImage/${currentBookName}/${currentItem.name}.png`"
-            alt="Image not found" class="w-full h-auto" />
+            alt="Image not found" class="w-full object-contain" />
         </div>
 
         <!-- Text Viewer -->
         <div v-if="displayMode === displayModeEnum.SplitTextAndEdition" id="text-viewer" class="flex-1 overflow-hidden">
           <div class="relative w-full h-full">
             <textarea v-model="currentText" readonly name="text-viewer" id="text-viewer" cols="30" rows="10"
-              class="w-full h-full p-2 border border-gray-300 rounded bg-gray-100"></textarea>
+              :class="textSize + ' w-full h-full p-2 border border-gray-300 rounded bg-gray-100'"></textarea>
             <div class="absolute top-2 right-2 bg-gray-200 text-gray-700 px-2 py-1 text-xs rounded">Saved text</div>
           </div>
         </div>
@@ -43,7 +58,7 @@
         <!-- Text Editor -->
         <div v-if="showTextEditor" id="text-editor" class="flex-1 overflow-hidden">
           <textarea v-model="currentText" name="text-editor" id="text-editor" cols="30" rows="10"
-            class="w-full h-full p-2 border border-gray-300 rounded"></textarea>
+            :class="textSize + ' w-full h-full p-2 border border-gray-300 rounded'"></textarea>
         </div>
       </div>
 
@@ -85,6 +100,7 @@ const currentBookName = ref<string>('')
 const isTextUpdated = ref<boolean>(false)
 const initialText = ref<string>('')
 let isLoadingText = false
+const textSize = ref<string>('text-xs')
 const displayModeEnum = {
   OnlyEdition: 'OnlyEdition',
   OnlyImage: 'OnlyImage',
@@ -207,6 +223,12 @@ const updateDisplayMode = (newDisplayMode: DisplayMode) => {
 const showImageViewer = computed(() => displayMode.value === displayModeEnum.OnlyImage || displayMode.value === displayModeEnum.SplitImageAndEdition);
 const showTextEditor = computed(() => displayMode.value === displayModeEnum.SplitImageAndEdition || displayMode.value === displayModeEnum.SplitTextAndEdition || displayMode.value === displayModeEnum.OnlyEdition);
 
+const deleteUselessBreakline = () => {
+  let processedText = currentText.value.replace(/\n\s*\n/g, '\n');
+  processedText = processedText.replace(/([^\.\n»])\n/g, '$1 ');
+  processedText = processedText.trim();
+  currentText.value = processedText
+}
 
 </script>
 
@@ -264,12 +286,38 @@ const showTextEditor = computed(() => displayMode.value === displayModeEnum.Spli
       border-top-right-radius: 0.25rem;
       border-bottom-right-radius: 0.25rem;
     }
-
   }
 }
 
 #editor {
   height: 90%;
+
+  textarea {
+
+    &.text-xxxs {
+      font-size: 0.60rem;
+    }
+
+    &.text-xxs {
+      font-size: 0.65rem;
+    }
+
+    &.text-xs {
+      font-size: 0.75rem;
+    }
+
+    &.text-sm {
+      font-size: 0.875rem;
+    }
+
+    &.text-base {
+      font-size: 1rem;
+    }
+
+    &.text-lg {
+      font-size: 1.125rem;
+    }
+  }
 }
 
 #navigator-bar {
