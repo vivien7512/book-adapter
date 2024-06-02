@@ -1,18 +1,33 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import TesseractSettings from './components/SettingsTesseract.vue'
+
 
 // Déclaration de variables réactives
 const message = ref('Bienvenue à Vue 3 avec TypeScript!')
+const showSettings = ref(false)
+
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value
+}
+
+const saveSettings = (settings: { ocrOem: string, ocrPsm: string, ocrLang: string }) => {
+}
 </script>
 
 <template>
   <div id="root">
-    <nav class="bg-teal-700 p-4 flex justify-around items-center shadow-md">
+    <nav class="bg-blue-800 p-4 flex justify-around items-center shadow-md">
       <router-link to="/PageEditor" class="nav-item flex justify-center items-center w-full ripple mx-2" active-class="active">PAGE Editor</router-link>
       <router-link to="/tab2" class="nav-item flex justify-center items-center w-full ripple  mx-2" active-class="active">2</router-link>
       <router-link to="/tab3" class="nav-item flex justify-center items-center w-full ripple  mx-2" active-class="active">3</router-link>
+      <button @click="toggleSettings" class="bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center">
+        <span class="material-icons">⚙️</span>
+      </button>
     </nav>
     <router-view />
+    <TesseractSettings :visible="showSettings" @onSave="saveSettings" @onClose="toggleSettings" />
+
   </div>
 </template>
 
@@ -40,7 +55,7 @@ const message = ref('Bienvenue à Vue 3 avec TypeScript!')
 }
 
 .active {
-  @apply bg-white text-teal-700;
+  @apply bg-white text-blue-800;
   border-bottom: 2px solid black
 }
 .ripple {
@@ -48,11 +63,11 @@ const message = ref('Bienvenue à Vue 3 avec TypeScript!')
   transition: background 0.8s;
 }
 .ripple:hover {
-  background: #015555 radial-gradient(circle, transparent 1%, #006F6F 1%) center/15000%;
+  background: #1e3a8a radial-gradient(circle, transparent 1%, #0f1b3d 1%) center/15000%;
   color: white;
 }
 .ripple:active {
-  background-color: #008B8B;
+  background-color: #0f1b3d;
   background-size: 100%;
   transition: background 0s;
 }

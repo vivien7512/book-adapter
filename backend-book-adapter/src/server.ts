@@ -3,11 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import tesseract from 'node-tesseract-ocr';
 import cors from 'cors';
+import axios from 'axios';
 
 const config = {
   lang: "fra",
   oem: 1,
-  psm: 4,
+  psm: 6,
 };
 
 const app = express();
@@ -103,14 +104,16 @@ app.get('/api/getBookPagesInfos', (req: Request<{}, {}, {}, ParamsBookName>, res
   }
 });
 
-interface ParamsBookNamePageName {
+interface ParamsTextOfImage {
   bookName: string;
   imageName: string;
+  isForceOcr?: string;
 }
 
-app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, ParamsBookNamePageName>, res: Response) => {
+app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, ParamsTextOfImage>, res: Response) => {
   try {
-    const { bookName, imageName } = req.query;
+
+    const { bookName, imageName, isForceOcr } = req.query;
 
     if (!bookName || !imageName) {
       return res.status(400).json({ error: 'bookName and imageName parameters are required' });
@@ -127,12 +130,29 @@ app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, ParamsBookNamePag
       return res.status(404).json({ error: 'Image not found' });
     }
 
+    // var base64str = base64_encode(imagePath);
+    // var imageAsBase64 = fs.readFileSync(imagePath, 'base64');
+    // var ddsds = image2ToBase64(imagePath);
+
+    // const data = {
+    //   model: "llava",
+    //   prompt: "tu es un OCR , renvoie le texte  qui est ecrit en Français",
+    //   stream: false,
+    //   images: [
+    //     ddsds  
+    //   ]
+    // };
+
+    // postData(data);
+
+
     const textFilePath = path.join(bookDirectory, 'texts', `${imageName}.txt`);
-    if (!fs.existsSync(textFilePath)) {
+    const isForceOcrBool = isForceOcr === 'true';
+    if (isForceOcrBool === true || !fs.existsSync(textFilePath)) {
       try {
-       
+
         const text = await tesseract.recognize(imagePath, config);
-        fs.writeFileSync(textFilePath, text, 'utf8');
+        //fs.writeFileSync(textFilePath, text, 'utf8');
         console.log(`Created text file for ${textFilePath}`);
         res.json({ text });
       } catch (error) {
@@ -150,6 +170,63 @@ app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, ParamsBookNamePag
 });
 
 
+const ocrMethode = {
+  Tesseract: 'Tesseract',
+  OpenAiVision: 'OpenAiVision'
+}
+
+interface ParamsGetTesseractText {
+  documentName: string;
+  imageName: string;
+  language: string;
+  oem: number;
+  psm: number;
+}
+
+app.get('/api/getTesseractText/:documentName/:imageName/:language/:oem/:psm', async (req: Request<ParamsGetTesseractText>, res: Response) => {
+  const { documentName, imageName, language, oem, psm } = req.params;
+
+  if (!documentName || !imageName || !language || !oem || !psm) {
+    return res.status(400).json({ error: 'documentName, imageName, language, oem, and psm parameters are required' });
+  }
+
+  const bookDirectory = path.join(BOOK_DIR, documentName);
+  if (!fs.existsSync(bookDirectory)) {
+    return res.status(404).json({ error: 'Book not found' });
+  }
+
+  const imgDirectory = path.join(bookDirectory, 'images');
+  const imagePath = path.join(imgDirectory, `${imageName}.png`);
+  if (!fs.existsSync(imagePath)) {
+    return res.status(404).json({ error: 'Image not found' });
+  }
+  const textFilePath = path.join(bookDirectory, 'texts', `${imageName}.txt`);
+  try {
+    const config = {
+      lang: language,
+      oem: oem,
+      psm: psm,
+    };
+
+    const text = await tesseract.recognize(imagePath, config);
+    res.json({ text });
+  }
+  catch (error) {
+    console.error(`Error processing ${textFilePath}:`, error);
+    res.status(500).json({ error: 'Failed to process image with OCR' });
+  }
+
+});
+
+async function postData(data: any) {
+  try {
+    const response = await axios.post('http://localhost:11434/api/generate', data);
+    console.log('Réponse du serveur:', response.data);
+  } catch (error: any) {
+    console.error('Erreur lors de la requête:', error.message);
+  }
+}
+
 app.get('/api/getBooksNames', (req, res) => {
   if (!fs.existsSync(BOOK_DIR)) {
     fs.mkdirSync(BOOK_DIR);
@@ -157,6 +234,48 @@ app.get('/api/getBooksNames', (req, res) => {
   const booksNames = fs.readdirSync(BOOK_DIR);
   return res.json(booksNames);
 });
+
+function base64_encode(file: any) {
+  // read binary data
+  var bitmap = fs.readFileSync(file);
+  // convert binary data to base64 encoded string
+  return new Buffer(bitmap).toString('base64');
+}
+
+
+
+function base64_encode2(file: any) {
+  // read binary data
+  const bitmap = fs.readFileSync(file);
+  // convert binary data to base64 encoded string
+  return bitmap.toString('base64');
+}
+
+
+function image2ToBase64(imagePath: string) {
+  try {
+    // Lire le fichier image
+    const imageBuffer = fs.readFileSync(imagePath);
+
+    // Convertir le buffer en base64
+    const imageAsBase64 = imageBuffer.toString('base64');
+
+    // Optionnel: vérifier la validité de la chaîne base64
+    if (!isBase64(imageAsBase64)) {
+      throw new Error("La chaîne base64 n'est pas valide");
+    }
+
+    return imageAsBase64;
+  } catch (err: any) {
+    console.error("Erreur lors de la conversion de l'image en base64:", err.message);
+    return null;
+  }
+}
+
+function isBase64(str: string) {
+  const base64Regex = /^(?:[A-Za-z0-9+\/]{4})*?(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/;
+  return base64Regex.test(str);
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
