@@ -1,47 +1,81 @@
 <template>
   <div id="page-editor" class="min-h-[calc(100vh-66px)] bg-gray-100 p-4 flex flex-col">
     <div class="bg-white shadow-md rounded-lg p-6 flex flex-col flex-grow w-full overflow-hidden mb-2">
-      <div id="toolbar" class="flex items-center space-x-4 mb-4 w-full">
-        <select v-model="currentBookName" class="p-2 border border-gray-300 rounded flex-grow">
-          <option v-for="bookName in booksNames" :key="bookName" :value="bookName">{{ bookName }}</option>
-        </select>
 
-        <div id="display-group-btn" class="grid grid-cols-2 grid-rows-2 gap-0 mb-2 md:mb-0">
-          <div class="btn" :class="{ 'active': displayMode === displayModeEnum.SplitImageAndEdition }"
-            v-on:click="updateDisplayMode(displayModeEnum.SplitImageAndEdition)">🖼️|✏️</div>
-          <div class="btn" :class="{ 'active': displayMode === displayModeEnum.SplitTextAndEdition }"
-            v-on:click="updateDisplayMode(displayModeEnum.SplitTextAndEdition)">📄|✏️</div>
-          <div class="btn" :class="{ 'active': displayMode === displayModeEnum.OnlyEdition }"
-            v-on:click="updateDisplayMode(displayModeEnum.OnlyEdition)">✏️</div>
-          <div class="btn" :class="{ 'active': displayMode === displayModeEnum.OnlyImage }"
-            v-on:click="updateDisplayMode(displayModeEnum.OnlyImage)">🖼️</div>
+      <div id="toolbar" class="toolbar mb-4 w-full">
+        <!-- First Row -->
+        <div class="toolbar-row">
+          <select v-model="currentBookName" class="toolbar-select flex-grow">
+            <option v-for="bookName in booksNames" :key="bookName" :value="bookName">{{ bookName }}</option>
+          </select>
+
+          <div id="display-group-btn" class="grid grid-cols-2 grid-rows-2 gap-0 border-left">
+            <div class="btn" :class="{ 'active': displayMode === displayModeEnum.SplitImageAndEdition }"
+              v-on:click="updateDisplayMode(displayModeEnum.SplitImageAndEdition)">🖼️|✏️</div>
+            <div class="btn" :class="{ 'active': displayMode === displayModeEnum.SplitTextAndEdition }"
+              v-on:click="updateDisplayMode(displayModeEnum.SplitTextAndEdition)">📄|✏️</div>
+            <div class="btn" :class="{ 'active': displayMode === displayModeEnum.OnlyEdition }"
+              v-on:click="updateDisplayMode(displayModeEnum.OnlyEdition)">✏️</div>
+            <div class="btn" :class="{ 'active': displayMode === displayModeEnum.OnlyImage }"
+              v-on:click="updateDisplayMode(displayModeEnum.OnlyImage)">🖼️</div>
+          </div>
         </div>
 
-        <select v-model="fontSize" class="p-2 border border-gray-300 rounded">
-          <option :value="0.50">0.50rem</option>
-          <option :value="0.55">0.55rem</option>
-          <option :value="0.60">0.60rem</option>
-          <option :value="0.65">0.65rem</option>
-          <option :value="0.75">0.75rem</option>
-          <option :value="0.85">0.85rem</option>
-          <option :value="0.95">0.95rem</option>
-          <option :value="1.05">1.05rem</option>
-          <option :value="1.15">1.15rem</option>
-          <option :value="1.25">1.25rem</option>
-        </select>
+        <!-- Second Row -->
+        <div class="toolbar-row mt-2">
+          <div class="vertical-btn-group">
+            <div class="font-size-controls">
+              <button @click="decreaseFontSize" class="toolbar-btn">-</button>
+              <span class="font-size-display">{{ fontSize.toFixed(2) }}rem</span>
+              <button @click="increaseFontSize" class="toolbar-btn">+</button>
+            </div>
+          </div>
 
-        <button @click="deleteUselessBreakline" class="bg-gray-300 text-gray-700 px-4 py-2 rounded">\n</button>
+          <div class="vertical-btn-group border-left">
+            <select v-model="ocrMethod" class="toolbar-select">
+              <option :value="ocrMethode.Tesseract">Tesseract</option>
+              <option :value="ocrMethode.OpenAiVision">OpenAi Vision</option>
+            </select>
 
-        <button @click="getTesseractText" class="bg-gray-300 text-gray-700 px-4 py-2 rounded">OCR</button>
+            <select v-model="ocrLang" class="toolbar-select">
+              <option value="eng">English</option>
+              <option value="fra">French</option>
+              <option value="spa">Spanish</option>
+              <option value="deu">German</option>
+            </select>
+          </div>
 
-        <button @click="toggleSettings" class="bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center">
-          <span class="material-icons">⚙️</span>
-        </button>
+          <div class="vertical-btn-group">
+            <select v-model="ocrOem" class="toolbar-select">
+              <option value="0">OEM 0</option>
+              <option value="1">OEM 1</option>
+              <option value="2">OEM 2</option>
+              <option value="3">OEM 3</option>
+            </select>
+            <select v-model="ocrPsm" class="toolbar-select">
+              <option value="0">PSM 0</option>
+              <option value="1">PSM 1</option>
+              <option value="3">PSM 3</option>
+              <option value="4">PSM 4</option>
+              <option value="5">PSM 5</option>
+              <option value="6">PSM 6</option>
+              <option value="7">PSM 7</option>
+              <option value="11">PSM 11</option>
+              <option value="12">PSM 12</option>
+            </select>
+          </div>
 
-        <button @click="cancelTextUpdate" :disabled="!isTextUpdated"
-          class="bg-red-500 text-white px-4 py-2 rounded disabled:opacity-50">🗙 Cancel</button>
-        <button @click="saveTextUpdate" :disabled="!isTextUpdated"
-          class="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50">🖫 Save</button>
+          <div class="vertical-btn-group border-left">
+            <button @click="deleteUselessBreakline" class="toolbar-btn">\n</button>
+            <button @click="getTesseractText" class="toolbar-btn">OCR</button>
+          </div>
+
+          <button @click="toggleSettings" class="toolbar-btn flex items-center border-left">
+            <span class="material-icons">⚙️</span>
+          </button>
+          <button @click="cancelTextUpdate" :disabled="!isTextUpdated" class="toolbar-btn cancel-btn border-left">🗙 Cancel</button>
+          <button @click="saveTextUpdate" :disabled="!isTextUpdated" class="toolbar-btn save-btn border-left">🖫 Save</button>
+        </div>
       </div>
 
       <div id="editor" class="flex-grow flex space-x-4 w-full overflow-hidden">
@@ -111,9 +145,11 @@ const isTextUpdated = ref<boolean>(false)
 const initialText = ref<string>('')
 let isLoadingText = false
 const fontSize = ref<number>(0.65)
+const ocrOem = ref<string>(localStorage.getItem('ocrOem') || '3')
+const ocrPsm = ref<string>(localStorage.getItem('ocrPsm') || '3')
+const ocrLang = ref<string>(localStorage.getItem('ocrLang') || 'eng')
 
 const showSettings = ref(false)
-
 
 const displayModeEnum = {
   OnlyEdition: 'OnlyEdition',
@@ -127,9 +163,8 @@ const ocrMethode = {
   OpenAiVision: 'OpenAiVision'
 }
 
-type DisplayMode = keyof typeof displayModeEnum;
-
-const displayMode = ref(displayModeEnum.SplitImageAndEdition);
+const displayMode = ref(displayModeEnum.SplitImageAndEdition)
+const ocrMethod = ref(ocrMethode.Tesseract)
 
 const fetchMetasInfos = async (newBookName: string) => {
   try {
@@ -138,7 +173,6 @@ const fetchMetasInfos = async (newBookName: string) => {
     pageInfos.value = response.data
     if (pageInfos.value.length > 0) {
       await getTextOfImage()
-
     }
   } catch (error) {
     console.error('Error while gathering pageInfos:', error)
@@ -159,11 +193,9 @@ const getTextOfImage = async (isForceOcr: boolean = false) => {
     if (!isForceOcr) {
       initialText.value = response.data.text
       isTextUpdated.value = false
-    }
-    else {
+    } else {
       isTextUpdated.value = true
     }
-
   } catch (error) {
     console.error('Error while gathering text of the image:', error)
   } finally {
@@ -172,14 +204,12 @@ const getTextOfImage = async (isForceOcr: boolean = false) => {
   }
 }
 
-
 const getTesseractText = async () => {
   try {
     isLoading.value = true
     let oem = localStorage.getItem('ocrOem') || '3'
     let psm = localStorage.getItem('ocrPsm') || '3'
     let language = localStorage.getItem('ocrLang') || 'eng'
-    // '/api/getTesseractText/:documentName/:imageName/:language/:oem/:psm'
     let request = `http://localhost:3000/api/getTesseractText/${currentBookName.value}/${currentItem.value.name}/${language}/${oem}/${psm}`
     const response = await axios.get(request)
     currentText.value = response.data.text
@@ -248,6 +278,27 @@ watch(currentText, (newText: string, oldText: string) => {
   }
 })
 
+watch(ocrOem, (newOcrOem: string) => {
+  localStorage.setItem('ocrOem', newOcrOem)
+})
+
+watch(ocrPsm, (newOcrPsm: string) => {
+  localStorage.setItem('ocrPsm', newOcrPsm)
+})
+
+watch(ocrMethod, (newOcrMethod: string) => {
+  if (newOcrMethod === ocrMethode.OpenAiVision) {
+    alert('OpenAi Vision is not yet implemented')
+  }
+  else{
+    localStorage.setItem('ocrMethod', newOcrMethod)
+  }
+})
+
+watch(ocrLang, (newOcrLang: string) => {
+  localStorage.setItem('ocrLang', newOcrLang)
+})
+
 const currentItem = computed(() => pageInfos.value[currentIndex.value - 1])
 
 const prevInfo = () => {
@@ -262,21 +313,32 @@ const nextInfo = () => {
   }
 }
 
-const updateDisplayMode = (newDisplayMode: DisplayMode) => {
-  displayMode.value = newDisplayMode;
+const updateDisplayMode = (newDisplayMode) => {
+  displayMode.value = newDisplayMode
 }
 
-const showImageViewer = computed(() => displayMode.value === displayModeEnum.OnlyImage || displayMode.value === displayModeEnum.SplitImageAndEdition);
-const showTextEditor = computed(() => displayMode.value === displayModeEnum.SplitImageAndEdition || displayMode.value === displayModeEnum.SplitTextAndEdition || displayMode.value === displayModeEnum.OnlyEdition);
+const showImageViewer = computed(() => displayMode.value === displayModeEnum.OnlyImage || displayMode.value === displayModeEnum.SplitImageAndEdition)
+const showTextEditor = computed(() => displayMode.value === displayModeEnum.SplitImageAndEdition || displayMode.value === displayModeEnum.SplitTextAndEdition || displayMode.value === displayModeEnum.OnlyEdition)
 
 const deleteUselessBreakline = () => {
   let processedText = currentText.value
-    .replace(/\n\s*\n/g, '\n')  // Remplacer les doubles sauts de ligne par un seul saut de ligne
-    .replace(/([^\.\n»\?])\n/g, '$1 ')  // Remplacer les sauts de ligne non désirés par des espaces
+    .replace(/\n\s*\n/g, '\n')  // Replace double newlines with a single newline
+    .replace(/([^\.\n»\?])\n/g, '$1 ')  // Replace undesired newlines with spaces
+    .replace(/(^|\n)\s+/g, '$1')  // Remove spaces at the start of each line
     .trim()
-    .replace(/(^|\n)(?!\t)/g, '$1\t');  // Ajouter une tabulation au début de chaque nouvelle ligne si il n'y en a pas déjà une
+    .replace(/(^|\n)(?!\t)/g, '$1\t');  // Add a tab at the start of each new line if there isn't one already
 
   currentText.value = processedText;
+}
+
+const increaseFontSize = () => {
+  fontSize.value += 0.05;
+}
+
+const decreaseFontSize = () => {
+  if (fontSize.value > 0.1) {
+    fontSize.value -= 0.05;
+  }
 }
 
 const toggleSettings = () => {
@@ -290,17 +352,74 @@ const toggleSettings = () => {
   animation: spin 1s ease-in-out infinite;
 }
 
-
 #toolbar {
   display: flex;
   flex-wrap: wrap;
+  gap: 10px;
 
-  .bg-blue-500 {
-    padding: 0.5rem 1rem;
+  .toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
-  .bg-gray-300 {
-    padding: 0.5rem 1rem;
+  .toolbar-select, .toolbar-btn {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f6f6f6;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s, transform 0.3s;
+
+    &:hover {
+      background-color: #e0e0e0;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transform: translateY(-1px);
+    }
+  }
+
+  .toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f6f6f6;
+    color: #333;
+
+    &.cancel-btn {
+      background-color: #f44336;
+      color: #fff;
+
+      &:hover {
+        background-color: #e53935;
+      }
+    }
+
+    &.save-btn {
+      background-color: #4caf50;
+      color: #fff;
+
+      &:hover {
+        background-color: #43a047;
+      }
+    }
+
+    &.active {
+      background-color: #2196f3;
+      color: #fff;
+    }
+
+    &:disabled {
+      background-color: #d3d3d3;
+      color: #888;
+      cursor: not-allowed;
+    }
+  }
+
+  .vertical-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
   }
 
   .grid {
@@ -314,9 +433,9 @@ const toggleSettings = () => {
     display: flex;
     justify-content: center;
     align-items: center;
-    // padding: 0.5rem 1rem;
-    background-color: #F6F6F6;
-    color: #fff;
+    padding: 0.5rem;
+    background-color: #f6f6f6;
+    color: #333;
     font-weight: bold;
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -331,23 +450,25 @@ const toggleSettings = () => {
 
     &.active {
       background-color: #3498db;
+      color: #fff;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       transform: translateY(-2px);
     }
   }
 
-  .mb-2 {
-    margin-bottom: 0.5rem;
+  .border-left {
+    border-left: 1px solid #ccc;
+    padding-left: 10px;
   }
 
-  .md\:mb-0 {
-    @media (min-width: 768px) {
-      margin-bottom: 0;
+  .font-size-controls {
+    display: flex;
+    align-items: center;
+
+    .font-size-display {
+      margin: 0 10px;
+      font-size: 14px;
     }
-  }
-
-  .text-sm {
-    font-size: 0.875rem;
   }
 }
 
