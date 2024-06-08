@@ -104,16 +104,25 @@ app.get('/api/getBookPagesInfos', (req: Request<{}, {}, {}, ParamsBookName>, res
   }
 });
 
+const ocrMethodeEnum = {
+  Tesseract: 'Tesseract',
+  OpenAiVision: 'OpenAiVision'
+}
+
 interface ParamsTextOfImage {
   bookName: string;
   imageName: string;
   isForceOcr?: string;
+  ocrMethode?: string;
+  language?: string;
+  oem?: number;
+  psm?: number;
 }
 
-app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, ParamsTextOfImage>, res: Response) => {
+app.get('/api/getTextOfDisplayedImage', async (req: Request<{}, {}, {}, ParamsTextOfImage>, res: Response) => {
   try {
 
-    const { bookName, imageName, isForceOcr } = req.query;
+    const { bookName, imageName, isForceOcr, ocrMethode, language, oem, psm } = req.query;
 
     if (!bookName || !imageName) {
       return res.status(400).json({ error: 'bookName and imageName parameters are required' });
@@ -128,6 +137,13 @@ app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, ParamsTextOfImage
     const imagePath = path.join(imgDirectory, `${imageName}.png`);
     if (!fs.existsSync(imagePath)) {
       return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const textFilePath = path.join(bookDirectory, 'texts', `${imageName}.txt`);
+    if (fs.existsSync(textFilePath)) {
+      const text = fs.readFileSync(textFilePath, 'utf-8');
+      const isFromLocal = true;
+      return res.json({ text: text, isFromLocal: isFromLocal });
     }
 
     // var base64str = base64_encode(imagePath);
@@ -146,22 +162,31 @@ app.get('/api/getTextOfImage', async (req: Request<{}, {}, {}, ParamsTextOfImage
     // postData(data);
 
 
-    const textFilePath = path.join(bookDirectory, 'texts', `${imageName}.txt`);
     const isForceOcrBool = isForceOcr === 'true';
-    if (isForceOcrBool === true || !fs.existsSync(textFilePath)) {
+    if (isForceOcrBool === true) {
       try {
+        if (!ocrMethode || ocrMethode === ocrMethodeEnum.Tesseract) {
+          let configTesseract = {
+            lang: language || 'fra',
+            oem: oem || 1,
+            psm: psm || 6,
+          };
+          const text = await tesseract.recognize(imagePath, configTesseract);
+          fs.writeFileSync(textFilePath, text, 'utf8');
 
-        const text = await tesseract.recognize(imagePath, config);
-        //fs.writeFileSync(textFilePath, text, 'utf8');
-        console.log(`Created text file for ${textFilePath}`);
-        res.json({ text });
+          let result = { text: text, isFromLocal: false }
+          console.log(`Created text file for ${textFilePath}`);
+          res.json(result);
+        }
       } catch (error) {
         console.error(`Error processing ${textFilePath}:`, error);
         res.status(500).json({ error: 'Failed to process image with OCR' });
       }
+
     } else {
-      const text = fs.readFileSync(textFilePath, 'utf-8');
-      res.json({ text });
+      if (!fs.existsSync(textFilePath)) {
+        return res.json({ text: '', isFromLocal: true });
+      }
     }
   } catch (error) {
     console.error('Error processing api/getTextOfImage', error);
@@ -209,7 +234,7 @@ app.get('/api/getTesseractText/:documentName/:imageName/:language/:oem/:psm', as
     };
 
     const text = await tesseract.recognize(imagePath, config);
-    res.json({ text });
+    res.json({ text: text, isFromLocal: false});
   }
   catch (error) {
     console.error(`Error processing ${textFilePath}:`, error);

@@ -9,7 +9,8 @@
             <option v-for="bookName in booksNames" :key="bookName" :value="bookName">{{ bookName }}</option>
           </select>
 
-          <div id="display-group-btn" class="grid grid-cols-2 grid-rows-2 gap-0 border-left">
+          <div id="display-group-btn" class="grid grid-cols-2 grid-rows-2 gap-0 border-left"
+            v-if="currentBookName != ''">
             <div class="btn" :class="{ 'active': displayMode === displayModeEnum.SplitImageAndEdition }"
               v-on:click="updateDisplayMode(displayModeEnum.SplitImageAndEdition)">🖼️|✏️</div>
             <div class="btn" :class="{ 'active': displayMode === displayModeEnum.SplitTextAndEdition }"
@@ -22,7 +23,7 @@
         </div>
 
         <!-- Second Row -->
-        <div class="toolbar-row mt-2">
+        <div class="toolbar-row mt-2" v-if="currentBookName != ''">
           <div class="vertical-btn-group">
             <div class="font-size-controls">
               <button @click="decreaseFontSize" class="toolbar-btn">-</button>
@@ -33,8 +34,8 @@
 
           <div class="vertical-btn-group border-left">
             <select v-model="ocrMethod" class="toolbar-select">
-              <option :value="ocrMethode.Tesseract">Tesseract</option>
-              <option :value="ocrMethode.OpenAiVision">OpenAi Vision</option>
+              <option :value="ocrMethodeEnum.Tesseract">Tesseract</option>
+              <option :value="ocrMethodeEnum.OpenAiVision">OpenAi Vision</option>
             </select>
 
             <select v-model="ocrLang" class="toolbar-select">
@@ -70,11 +71,18 @@
             <button @click="getTesseractText" class="toolbar-btn">OCR</button>
           </div>
 
+          <div class="vertical-btn-group">
+            <div><input type="checkbox" v-model="isApplyOcrIfNoText" id="isApplyOcrIfNoText" name="isApplyOcrIfNoText"
+                value="true"> <label for="isApplyOcrIfNoText">OCR if no text</label></div>
+          </div>
+
           <button @click="toggleSettings" class="toolbar-btn flex items-center border-left">
             <span class="material-icons">⚙️</span>
           </button>
-          <button @click="cancelTextUpdate" :disabled="!isTextUpdated" class="toolbar-btn cancel-btn border-left">🗙 Cancel</button>
-          <button @click="saveTextUpdate" :disabled="!isTextUpdated" class="toolbar-btn save-btn border-left">🖫 Save</button>
+          <button @click="cancelTextUpdate" :disabled="!isTextUpdated" class="toolbar-btn cancel-btn border-left">🗙
+            Cancel</button>
+          <button @click="saveTextUpdate" :disabled="!isTextUpdated" class="toolbar-btn save-btn border-left">🖫
+            Save</button>
         </div>
       </div>
 
@@ -97,9 +105,13 @@
         </div>
 
         <!-- Text Editor -->
-        <div v-if="showTextEditor" id="text-editor" class="flex-1 overflow-hidden">
+        <div v-if="showTextEditor" id="text-editor" class="flex-1 overflow-hidden relative">
           <textarea v-model="currentText" name="text-editor" id="text-editor" cols="30" rows="10"
             :style="{ fontSize: fontSize + 'rem' }" class="w-full h-full p-2 border border-gray-300 rounded"></textarea>
+          <div v-if="isFromLocal" class="badge bg-blue-500 text-white text-xs px-2 py-1 rounded absolute -top-2 right-2">
+            Local</div>
+          <div v-else class="badge bg-green-500 text-white text-xs px-2 py-1 rounded absolute -top-2 right-2">
+            OCR</div>
         </div>
       </div>
 
@@ -113,6 +125,7 @@
             <span v-if="currentItem">{{ currentItem.index }} / {{ pageInfos.length }}</span>
           </div>
         </div>
+        
         <button @click="nextInfo" class="bg-gray-300 text-gray-700 px-4 py-2 rounded">Next →</button>
       </div>
     </div>
@@ -148,6 +161,8 @@ const fontSize = ref<number>(0.65)
 const ocrOem = ref<string>(localStorage.getItem('ocrOem') || '3')
 const ocrPsm = ref<string>(localStorage.getItem('ocrPsm') || '3')
 const ocrLang = ref<string>(localStorage.getItem('ocrLang') || 'eng')
+const isApplyOcrIfNoText = ref<boolean>(false)
+const isFromLocal = ref<boolean>(false)
 
 const showSettings = ref(false)
 
@@ -158,13 +173,13 @@ const displayModeEnum = {
   SplitTextAndEdition: 'SplitTextAndEdition'
 }
 
-const ocrMethode = {
+const ocrMethodeEnum = {
   Tesseract: 'Tesseract',
   OpenAiVision: 'OpenAiVision'
 }
 
 const displayMode = ref(displayModeEnum.SplitImageAndEdition)
-const ocrMethod = ref(ocrMethode.Tesseract)
+const ocrMethod = ref(ocrMethodeEnum.Tesseract)
 
 const fetchMetasInfos = async (newBookName: string) => {
   try {
@@ -172,7 +187,7 @@ const fetchMetasInfos = async (newBookName: string) => {
     const response = await axios.get(`http://localhost:3000/api/getBookPagesInfos?bookName=${newBookName}`)
     pageInfos.value = response.data
     if (pageInfos.value.length > 0) {
-      await getTextOfImage()
+      await getTextOfDisplayedImage()
     }
   } catch (error) {
     console.error('Error while gathering pageInfos:', error)
@@ -181,21 +196,31 @@ const fetchMetasInfos = async (newBookName: string) => {
   }
 }
 
-const getTextOfImage = async (isForceOcr: boolean = false) => {
+const getTextOfDisplayedImage = async () => {
   try {
+    let isForceOcr = isApplyOcrIfNoText.value || false
     let bookName = currentBookName.value
     isLoading.value = true
     isLoadingText = true;
+    if (!currentItem.value || !currentItem.value.name) 
+    {
+      return
+    }
     let imageName = currentItem.value.name
-    let request = `http://localhost:3000/api/getTextOfImage?bookName=${bookName}&imageName=${imageName}&isForceOcr=${isForceOcr}`
+    let request = `http://localhost:3000/api/getTextOfDisplayedImage?bookName=${bookName}&imageName=${imageName}&isForceOcr=${isForceOcr}`
     const response = await axios.get(request)
     currentText.value = response.data.text
-    if (!isForceOcr) {
-      initialText.value = response.data.text
+    
+    initialText.value = response.data.text
+    if (response.data.isFromLocal == true) {
       isTextUpdated.value = false
-    } else {
-      isTextUpdated.value = true
+      isFromLocal.value = true
     }
+    else {
+      isTextUpdated.value = false
+      isFromLocal.value = false
+    }
+
   } catch (error) {
     console.error('Error while gathering text of the image:', error)
   } finally {
@@ -213,6 +238,8 @@ const getTesseractText = async () => {
     let request = `http://localhost:3000/api/getTesseractText/${currentBookName.value}/${currentItem.value.name}/${language}/${oem}/${psm}`
     const response = await axios.get(request)
     currentText.value = response.data.text
+    isTextUpdated.value = true
+    isFromLocal.value = false
   } catch (error) {
     console.error('Error while gathering text of the image:', error)
   } finally {
@@ -243,6 +270,7 @@ const saveTextUpdate = async () => {
     })
     initialText.value = currentText.value
     isTextUpdated.value = false
+    isFromLocal.value = true
   } catch (error) {
     console.error('Erreur while saving text:', error)
   } finally {
@@ -264,7 +292,7 @@ onMounted(() => {
 watch(currentIndex, (newIndex: number) => {
   const metaInfo = pageInfos.value[newIndex - 1]
   if (metaInfo) {
-    getTextOfImage()
+    getTextOfDisplayedImage()
   }
 })
 
@@ -287,10 +315,10 @@ watch(ocrPsm, (newOcrPsm: string) => {
 })
 
 watch(ocrMethod, (newOcrMethod: string) => {
-  if (newOcrMethod === ocrMethode.OpenAiVision) {
+  if (newOcrMethod === ocrMethodeEnum.OpenAiVision) {
     alert('OpenAi Vision is not yet implemented')
   }
-  else{
+  else {
     localStorage.setItem('ocrMethod', newOcrMethod)
   }
 })
@@ -321,12 +349,18 @@ const showImageViewer = computed(() => displayMode.value === displayModeEnum.Onl
 const showTextEditor = computed(() => displayMode.value === displayModeEnum.SplitImageAndEdition || displayMode.value === displayModeEnum.SplitTextAndEdition || displayMode.value === displayModeEnum.OnlyEdition)
 
 const deleteUselessBreakline = () => {
+
   let processedText = currentText.value
+    .replace(/\r\n/g, '\n')  // Normalize Windows-style line endings to Unix-style
     .replace(/\n\s*\n/g, '\n')  // Replace double newlines with a single newline
     .replace(/([^\.\n»\?])\n/g, '$1 ')  // Replace undesired newlines with spaces
-    .replace(/(^|\n)\s+/g, '$1')  // Remove spaces at the start of each line
-    .trim()
-    .replace(/(^|\n)(?!\t)/g, '$1\t');  // Add a tab at the start of each new line if there isn't one already
+    .replace(/(^|\n) /g, '$1')  // Remove space at the beginning of lines
+    .replace(/(^|\n)(?!\t)/g, '$1\t');  // Add a tab at the beginning of each line if there isn't already one
+  ;
+
+  if (processedText.startsWith('\t')) {
+    processedText = processedText.slice(1);
+  }
 
   currentText.value = processedText;
 }
@@ -363,7 +397,8 @@ const toggleSettings = () => {
     gap: 10px;
   }
 
-  .toolbar-select, .toolbar-btn {
+  .toolbar-select,
+  .toolbar-btn {
     padding: 0.25rem 0.5rem;
     border: 1px solid #ccc;
     border-radius: 4px;
